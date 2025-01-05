@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>网页赛车游戏</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+            background-color: #f0f0f0;
+        }
+        #gameContainer {
+            text-align: center;
+            margin-top: 20px;
+        }
+        #score {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="score">得分: 0</div>
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+
+        // 游戏状态
+        let score = 0;
+        let gameOver = false;
+        let animationId;
+
+        // 玩家车辆
+        const player = {
+            x: canvas.width / 2 - 20,
+            y: canvas.height - 100,
+            width: 40,
+            height: 60,
+            speed: 5,
+            color: 'red'
+        };
+
+        // 障碍物数组
+        let obstacles = [];
+        
+        // 控制状态
+        const keys = {
+            ArrowLeft: false,
+            ArrowRight: false,
+            ArrowUp: false,
+            ArrowDown: false
+        };
+
+        // 监听键盘事件
+        document.addEventListener('keydown', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (keys.hasOwnProperty(e.key)) {
+                keys[e.key] = false;
+            }
+        });
+
+        // 创建障碍物
+        function createObstacle() {
+            return {
+                x: Math.random() * (canvas.width - 40),
+                y: -60,
+                width: 40,
+                height: 60,
+                speed: 3 + Math.random() * 2,
+                color: 'black'
+            };
+        }
+
+        // 绘制矩形
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
+        }
+
+        // 碰撞检测
+        function checkCollision(rect1, rect2) {
+            return rect1.x < rect2.x + rect2.width &&
+                   rect1.x + rect1.width > rect2.x &&
+                   rect1.y < rect2.y + rect2.height &&
+                   rect1.y + rect1.height > rect2.y;
+        }
+
+        // 更新游戏状态
+        function update() {
+            // 移动玩家
+            if (keys.ArrowLeft) player.x -= player.speed;
+            if (keys.ArrowRight) player.x += player.speed;
+            if (keys.ArrowUp) player.y -= player.speed;
+            if (keys.ArrowDown) player.y += player.speed;
+
+            // 限制玩家移动范围
+            player.x = Math.max(0, Math.min(player.x, canvas.width - player.width));
+            player.y = Math.max(0, Math.min(player.y, canvas.height - player.height));
+
+            // 更新障碍物
+            if (Math.random() < 0.02) {
+                obstacles.push(createObstacle());
+            }
+
+            obstacles.forEach((obstacle, index) => {
+                obstacle.y += obstacle.speed;
+
+                // 移除超出画面的障碍物
+                if (obstacle.y > canvas.height) {
+                    obstacles.splice(index, 1);
+                    score += 10;
+                    scoreElement.textContent = `得分: ${score}`;
+                }
+
+                // 碰撞检测
+                if (checkCollision(player, obstacle)) {
+                    gameOver = true;
+                }
+            });
+        }
+
+        // 绘制游戏画面
+        function draw() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制玩家
+            drawRect(player.x, player.y, player.width, player.height, player.color);
+
+            // 绘制障碍物
+            obstacles.forEach(obstacle => {
+                drawRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height, obstacle.color);
+            });
+
+            // 游戏结束显示
+            if (gameOver) {
+                ctx.fillStyle = 'black';
+                ctx.font = '48px Arial';
+                ctx.fillText('游戏结束!', canvas.width/2 - 100, canvas.height/2);
+                ctx.font = '24px Arial';
+                ctx.fillText('按空格键重新开始', canvas.width/2 - 100, canvas.height/2 + 40);
+            }
+        }
+
+        // 游戏主循环
+        function gameLoop() {
+            if (!gameOver) {
+                update();
+                draw();
+                animationId = requestAnimationFrame(gameLoop);
+            }
+        }
+
+        // 重置游戏
+        function resetGame() {
+            player.x = canvas.width / 2 - 20;
+            player.y = canvas.height - 100;
+            obstacles = [];
+            score = 0;
+            scoreElement.textContent = `得分: ${score}`;
+            gameOver = false;
+            gameLoop();
+        }
+
+        // 监听空格键重新开始
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space' && gameOver) {
+                resetGame();
+            }
+        });
+
+        // 开始游戏
+        resetGame();
+    </script>
+</body>
+</html> 
